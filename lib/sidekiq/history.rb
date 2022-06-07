@@ -1,84 +1,80 @@
+# frozen_string_literal: true
+
 require 'sidekiq/web'
 require 'sidekiq/history/version'
 require 'sidekiq/history/middleware'
 require 'sidekiq/history/web_extension'
 
 module Sidekiq
-  def self.history_max_count=(value)
-    @history_max_count = value
-  end
-
-  def self.history_max_count
-    # => use default 1000 unless specified in config.
-    # Max is 4294967295 per Redis Sorted Set limit
-    hmc = if defined? MAX_COUNT
-            [MAX_COUNT, 4_294_967_295].min
-          else
-            1000
-          end
-    return hmc if @history_max_count.nil?
-    @history_max_count
-  end
-
-  def self.history_exclude_jobs=(value)
-    @history_exclude_jobs = value
-  end
-
-  def self.history_exclude_jobs
-    if defined? Sidekiq::History::Middleware::EXCLUDE_JOBS
-      jobs = Sidekiq::History::Middleware::EXCLUDE_JOBS
-    end
-    return jobs if @history_exclude_jobs.nil?
-    @history_exclude_jobs
-  end
-
-  def self.history_include_jobs=(value)
-    @history_include_jobs = value
-  end
-
-  def self.history_include_jobs
-    if defined? Sidekiq::History::Middleware::INCLUDE_JOBS
-      jobs = Sidekiq::History::Middleware::INCLUDE_JOBS
-    end
-    return jobs if @history_include_jobs.nil?
-    @history_include_jobs
-  end
-
   module History
     LIST_KEY = :history
 
-    def self.reset_history(options = {})
-      Sidekiq.redis do |c|
-        c.multi do
-          c.del(LIST_KEY)
-          c.set('stat:history', 0) if options[:counter] || options['counter']
+    # Check if a job should be recorded. Inclusion takes precedence over exclusion.
+    def record_to_history?(job_class)
+      return include_jobs.include?(job_class) if include_jobs.any?
+
+      return !exclude_jobs.include?(job_class) if exclude_jobs.any?
+
+      true
+    end
+
+    def self.max_count=(value)
+      @max_count = value
+    end
+
+    def self.max_count
+      return @max_count unless @max_count.nil?
+
+      # Use a default of 1000 unless specified in config. Max is 4294967295 per Redis Sorted Set limit.
+      defined?(MAX_COUNT) ? [MAX_COUNT, 4_294_967_295].min : 1000
+    end
+
+    def self.exclude_jobs=(value)
+      @exclude_jobs = value
+    end
+
+    def self.exclude_jobs
+      return @exclude_jobs unless @exclude_jobs.nil?
+
+      return Sidekiq::History::EXCLUDE_JOBS if defined? Sidekiq::History::EXCLUDE_JOBS
+
+      []
+    end
+
+    def self.include_jobs=(value)
+      @include_jobs = value
+    end
+
+    def self.include_jobs
+      return @include_jobs unless @include_jobs.nil?
+
+      return Sidekiq::History::INCLUDE_JOBS if defined? Sidekiq::History::INCLUDE_JOBS
+
+      []
+    end
+
+    def self.reset_history(counter: false)
+      Sidekiq.redis do |conn|
+        conn.multi do
+          conn.del(LIST_KEY)
+
+          conn.set('stat:history', 0) if counter
         end
       end
     end
 
-    def self.count
-      Sidekiq.redis { |r| r.zcard(LIST_KEY) }
-    end
+    def self.count = Sidekiq.redis { _1.zcard(LIST_KEY) }
 
     class HistorySet < Sidekiq::JobSet
-      def initialize
-        super LIST_KEY
-      end
+      def initialize = super LIST_KEY
     end
   end
 end
 
 Sidekiq.configure_server do |config|
-  config.server_middleware do |chain|
-    chain.add Sidekiq::History::Middleware
-  end
+  config.server_middleware { _1.add Sidekiq::History::Middleware }
 end
 
 Sidekiq::Web.register(Sidekiq::History::WebExtension)
 
-if Sidekiq::Web.tabs.is_a?(Array)
-  # For sidekiq < 2.5
-  Sidekiq::Web.tabs << 'history'
-else
-  Sidekiq::Web.tabs['History'] = 'history'
-end
+Sidekiq::Web.tabs['History'] = 'history'

@@ -1,0 +1,40 @@
+AllCops:
+  EnabledByDefault: true
+  NewCops: enable
+  TargetRubyVersion: 3.1
+
+# ------------------------------------------------------------------------------
+# Cops that should not be run
+# ------------------------------------------------------------------------------
+
+# Recommends right hand side of multi-line assignment be on a new line
+Layout/MultilineAssignmentLayout:
+  Enabled: false
+
+# Recommends squishing a multi-line hash into one line. I don't like that. It's not readable.
+Layout/RedundantLineBreak:
+  Enabled: false
+
+Lint/ConstantResolution:
+  Enabled: false
+
+Lint/NumberConversion:
+  Enabled: false
+
+Style/ConstantVisibility:
+  Enabled: false
+
+Style/Copyright:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/DocumentationMethod:
+  Enabled: false
+
+Style/MethodCallWithArgsParentheses:
+  Enabled: false
+
+Style/MissingElse:
+  Enabled: false

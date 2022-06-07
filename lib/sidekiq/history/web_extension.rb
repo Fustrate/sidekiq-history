@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Sidekiq
   module History
     module WebExtension
@@ -14,6 +16,7 @@ module Sidekiq
 
         app.post '/history/remove' do
           Sidekiq::History.reset_history(counter: params['counter'])
+
           redirect("#{root_path}history")
         end
 
@@ -21,6 +24,7 @@ module Sidekiq
           return redirect "#{root_path}history" unless params[:substr]
 
           @messages = search(HistorySet.new, params[:substr])
+
           render(:erb, File.read("#{ROOT}/views/history.erb"))
         end
 
@@ -28,6 +32,7 @@ module Sidekiq
           return redirect "#{root_path}history" unless params[:substr]
 
           @messages = search(HistorySet.new, params[:substr])
+
           render(:erb, File.read("#{ROOT}/views/history.erb"))
         end
 
