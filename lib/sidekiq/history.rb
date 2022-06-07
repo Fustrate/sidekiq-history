@@ -10,7 +10,7 @@ module Sidekiq
     LIST_KEY = :history
 
     # Check if a job should be recorded. Inclusion takes precedence over exclusion.
-    def record_to_history?(job_class)
+    def self.record_to_history?(job_class)
       return include_jobs.include?(job_class) if include_jobs.any?
 
       return !exclude_jobs.include?(job_class) if exclude_jobs.any?
