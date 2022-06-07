@@ -9,49 +9,22 @@ module Sidekiq
   module History
     LIST_KEY = :history
 
+    class << self
+      attr_accessor :include_jobs, :exclude_jobs
+      attr_writer :max_count
+    end
+
     # Check if a job should be recorded. Inclusion takes precedence over exclusion.
     def self.record_to_history?(job_class)
-      return include_jobs.include?(job_class) if include_jobs.any?
+      return include_jobs.include?(job_class) unless include_jobs.nil?
 
-      return !exclude_jobs.include?(job_class) if exclude_jobs.any?
+      return !exclude_jobs.include?(job_class) unless exclude_jobs.nil?
 
       true
     end
 
-    def self.max_count=(value)
-      @max_count = value
-    end
-
-    def self.max_count
-      return @max_count unless @max_count.nil?
-
-      # Use a default of 1000 unless specified in config. Max is 4294967295 per Redis Sorted Set limit.
-      defined?(MAX_COUNT) ? [MAX_COUNT, 4_294_967_295].min : 1000
-    end
-
-    def self.exclude_jobs=(value)
-      @exclude_jobs = value
-    end
-
-    def self.exclude_jobs
-      return @exclude_jobs unless @exclude_jobs.nil?
-
-      return Sidekiq::History::EXCLUDE_JOBS if defined? Sidekiq::History::EXCLUDE_JOBS
-
-      []
-    end
-
-    def self.include_jobs=(value)
-      @include_jobs = value
-    end
-
-    def self.include_jobs
-      return @include_jobs unless @include_jobs.nil?
-
-      return Sidekiq::History::INCLUDE_JOBS if defined? Sidekiq::History::INCLUDE_JOBS
-
-      []
-    end
+    # Use a default of 1000 unless specified. Max is 4294967295 per Redis Sorted Set limit.
+    def self.max_count = @max_count.nil? ? 1000 : [@max_count, 4_294_967_295].min
 
     def self.reset_history(counter: false)
       Sidekiq.redis do |conn|
