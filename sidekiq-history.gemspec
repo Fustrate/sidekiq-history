@@ -21,7 +21,7 @@ Gem::Specification.new do |spec|
   spec.executables   = []
   spec.require_paths = %w[lib]
 
-  spec.add_dependency 'sidekiq', '~> 6.5'
+  spec.add_dependency 'sidekiq', '>= 6.5'
 
   spec.add_development_dependency 'bundler', '> 1.16'
   spec.add_development_dependency 'rake', '> 10.0'
