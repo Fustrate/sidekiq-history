@@ -15,8 +15,6 @@ Gem::Specification.new do |spec|
   spec.homepage      = ''
   spec.license       = 'MIT'
 
-  spec.required_ruby_version = '~> 3.1'
-
   spec.files         = ::Dir['{lib,web}/**/*']
   spec.executables   = []
   spec.require_paths = %w[lib]
